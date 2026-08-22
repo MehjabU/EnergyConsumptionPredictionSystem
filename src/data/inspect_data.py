@@ -9,7 +9,7 @@ file_path = Path("data/raw/odc_final_dataset_2024.xlsx")
 df = pd.read_excel(file_path)
 #print(df.head())
 print(df.shape) #for this file, should return (6739, 31) -> (rows, cols)
-
+#
 max_city_idx = df['City'].str.len().idxmax()
 
 print(f"\nLongest city name has: {df['City'].str.len().max()} chars")
