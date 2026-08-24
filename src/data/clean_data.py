@@ -23,3 +23,7 @@ for column_name in columns:
 performance_df['Ener_Star_Score'] = performance_df['Ener_Star_Score'].replace('Not Available', np.nan).astype('Int64')
 
 print(f"\nData types after conversion:\n{performance_df.dtypes}") #check data types of each column after conversion
+
+#this removes \uffd from some of the rows in the only column that has it - EWRB_ID
+performance_df['EWRB_ID'] = performance_df['EWRB_ID'].str.replace('\ufffd', '', regex=False)
+
