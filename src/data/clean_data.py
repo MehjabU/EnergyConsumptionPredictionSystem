@@ -22,11 +22,31 @@ for column_name in columns:
 
 performance_df['Ener_Star_Score'] = performance_df['Ener_Star_Score'].replace('Not Available', np.nan).astype('Int64')
 
-print(f"\nData types after conversion:\n{performance_df.dtypes}") #check data types of each column after conversion
 
 #this removes \uffd from some of the rows in the only column that has it - EWRB_ID
 performance_df['EWRB_ID'] = performance_df['EWRB_ID'].astype(str)
 performance_df['EWRB_ID'] = performance_df['EWRB_ID'].str.replace('\ufffd', '', regex=False)
+
+building_columns =[
+    'EWRB_ID',
+    'City',
+    'Postal_Code',
+    'PrimPropTypCalc',
+    'PrimPropTypSelf',
+    'Largest_PropTyp',
+    'All_Prop_Types',
+    'Thrd_Party_Cert']
+
+buildings_df = df[building_columns].copy()
+buildings_df['EWRB_ID'] = buildings_df['EWRB_ID'].astype(str)
+buildings_df['EWRB_ID'] = buildings_df['EWRB_ID'].str.replace('\ufffd', '', regex=False)
+
+for cols in building_columns:
+    if cols == 'Thrd_Party_Cert':
+        buildings_df[cols] = buildings_df[cols].replace('Not Available', np.nan)
+
+print(buildings_df.dtypes)
+print(performance_df.dtypes)
 
 # Here I rename columns to match what I will put in postgreSQL
 
@@ -47,8 +67,21 @@ df2 = df2.rename(columns={
 
 # added a new column for reporting year, which will be 2024 for this dataset
 df2.insert(1, 'reporting_year', 2024)
-df2.to_excel("data/processed/odc_final_dataset_2024_cleaned.xlsx", index=False)
+df2.to_excel("data/processed/odc_energy_performance_dataset_2024_cleaned.xlsx", index=False)
 
-print(df2.dtypes) #check data types of each column after conversion
-print(df2.shape) #for this file, should return (6739, 12) -> (rows, cols)
-print(df2.duplicated().sum()) #check for duplicates, should return 0
+df3 = buildings_df.copy()
+df3 = df3.rename(columns={
+    'EWRB_ID': 'ewrb_id',
+    'City': 'city',
+    'Postal_Code': 'postal_code',
+    'PrimPropTypCalc': 'primary_property_type',
+    'PrimPropTypSelf': 'self_property_type',
+    'Largest_PropTyp': 'largest_property_type',
+    'All_Prop_Types': 'all_property_types',
+    'Thrd_Party_Cert': 'third_party_certification'})
+
+df3.to_excel("data/processed/odc_building_dataset_2024_cleaned.xlsx", index=False)
+
+# print(df2.dtypes) #check data types of each column after conversion
+# print(df2.shape) #for this file, should return (6739, 12) -> (rows, cols)
+# print(df2.duplicated().sum()) #check for duplicates, should return 0
