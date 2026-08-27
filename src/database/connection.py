@@ -7,12 +7,23 @@ from dotenv import load_dotenv
 import os
 
 load_dotenv()
-connection = psycopg2.connect(database=os.getenv("DB_NAME"), 
+# connection = psycopg2.connect(database=os.getenv("DB_NAME"), 
+#                               user=os.getenv("DB_USER"), 
+#                               password=os.getenv("DB_PASSWORD"), 
+#                               host=os.getenv("DB_HOST"), 
+#                               port=os.getenv("DB_PORT"))
+
+# Turned above into a function so that I can call it from other files
+def get_connection():
+    connection = psycopg2.connect(database=os.getenv("DB_NAME"), 
                               user=os.getenv("DB_USER"), 
                               password=os.getenv("DB_PASSWORD"), 
                               host=os.getenv("DB_HOST"), 
                               port=os.getenv("DB_PORT"))
+    return connection
 
+
+connection = get_connection()
 cursor = connection.cursor()
 print(os.getenv("DB_NAME"))
 
