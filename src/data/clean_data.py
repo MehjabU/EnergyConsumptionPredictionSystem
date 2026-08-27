@@ -25,6 +25,7 @@ performance_df['Ener_Star_Score'] = performance_df['Ener_Star_Score'].replace('N
 print(f"\nData types after conversion:\n{performance_df.dtypes}") #check data types of each column after conversion
 
 #this removes \uffd from some of the rows in the only column that has it - EWRB_ID
+performance_df['EWRB_ID'] = performance_df['EWRB_ID'].astype(str)
 performance_df['EWRB_ID'] = performance_df['EWRB_ID'].str.replace('\ufffd', '', regex=False)
 
 # Here I rename columns to match what I will put in postgreSQL
@@ -41,7 +42,7 @@ df2 = df2.rename(columns={
     'WN_Site_EUI1': 'weather_normalized_site_eui_gj_m2',
     'Source_EUI1': 'source_eui_gj_m2',
     'WN_Source_EUI1': 'weather_normalized_source_eui_gj_m2',
-    'GHG_Emiss_Int1': 'ghg_intensity_kgco2_m2',
+    'GHG_Emiss_Int1': 'ghg_intensity_kgco2e_m2',
     'Ener_Star_Score': 'energy_star_score'})
 
 # added a new column for reporting year, which will be 2024 for this dataset
@@ -49,3 +50,5 @@ df2.insert(1, 'reporting_year', 2024)
 df2.to_excel("data/processed/odc_final_dataset_2024_cleaned.xlsx", index=False)
 
 print(df2.dtypes) #check data types of each column after conversion
+print(df2.shape) #for this file, should return (6739, 12) -> (rows, cols)
+print(df2.duplicated().sum()) #check for duplicates, should return 0
