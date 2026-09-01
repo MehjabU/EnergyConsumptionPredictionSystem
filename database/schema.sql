@@ -26,3 +26,7 @@ CREATE TABLE energy_performance(
 );
 SELECT * FROM buildings;
 SELECT * FROM energy_performance
+
+ALTER TABLE energy_performance
+ADD CONSTRAINT energy_performance_ewrb_year_unique
+UNIQUE (ewrb_id, reporting_year);
