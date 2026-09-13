@@ -62,6 +62,7 @@ def print_results_table(results: dict) -> None:
  
  
 def print_largest_errors(
+    df: pd.DataFrame,
     X_test: pd.DataFrame,
     y_test: pd.Series,
     y_pred: np.ndarray,
@@ -70,23 +71,32 @@ def print_largest_errors(
 ) -> None:
     """
     Metrics alone say how well a model performs, not where it fails.
-    This prints the largest absolute errors so it's clear whether a
-    handful of extreme observations (e.g. the 16117.3 outlier from EDA)
-    are dominating RMSE, versus errors being spread evenly across
-    buildings.
+    This prints the largest absolute errors WITH the building's
+    identifying/contextual features (ewrb_id, city, property types),
+    looked up from df_clean via the shared index, so the extreme
+    observations can actually be investigated afterward — not just
+    flagged as an anonymous row number.
     """
-    errors_df = pd.DataFrame({
-        "row_index": X_test.index,
-        "actual": y_test.values,
-        "predicted": y_pred,
-    })
+    context_cols = [
+        "ewrb_id",
+        "city",
+        "primary_property_type",
+        "self_property_type",
+        "largest_property_type",
+        "postal_code",
+    ]
+    context_cols = [c for c in context_cols if c in df.columns]
+    context_df = df.loc[X_test.index, context_cols].reset_index(drop=True)
+ 
+    errors_df = context_df.copy()
+    errors_df["actual"] = y_test.values
+    errors_df["predicted"] = y_pred
     errors_df["absolute_error"] = (errors_df["actual"] - errors_df["predicted"]).abs()
     errors_df = errors_df.sort_values("absolute_error", ascending=False).head(top_n)
  
     print(f"\nLargest prediction errors ({model_name}):")
-    print(f"{'Actual':>12}{'Predicted':>14}{'Abs Error':>14}")
-    for _, row in errors_df.iterrows():
-        print(f"{row['actual']:>12.2f}{row['predicted']:>14.2f}{row['absolute_error']:>14.2f}")
+    with pd.option_context("display.max_columns", None, "display.width", 160):
+        print(errors_df.to_string(index=False))
  
  
 def print_best_model(results: dict) -> None:
@@ -105,7 +115,7 @@ def print_best_model(results: dict) -> None:
  
 def main():
     # 1. Call prepare_data()
-    X_train, X_test, y_train, y_test, preprocessor = prepare_data()
+    X_train, X_test, y_train, y_test, preprocessor, df = prepare_data()
  
     results = {}
  
@@ -132,7 +142,7 @@ def main():
     print_results_table(results)
  
     # 5. Analyze prediction errors 
-    print_largest_errors(X_test, y_test, y_pred_rf, model_name="Random Forest")
+    print_largest_errors(df, X_test, y_test, y_pred_rf, model_name="Random Forest")
  
     # 6. Log-transform target and retrain both models
     # site_eui_gj_m2 is extremely right-skewed (median ~0.737, max
@@ -151,9 +161,9 @@ def main():
  
     # 7. Compare all five results together
     print_results_table(results)
-    print_largest_errors(X_test, y_test, y_pred_rf_log, model_name="Random Forest (log1p)")
+    print_largest_errors(df, X_test, y_test, y_pred_rf_log, model_name="Random Forest (log1p)")
  
-    # 8. starting point for the next decision (further feature work, or committing to one approach),
+    # 8. a starting point for the next decision 
     # not a final answer.
     print_best_model(results)
  

@@ -76,6 +76,12 @@ def check_property_type_redundancy(df: pd.DataFrame) -> None:
         & (df["primary_property_type"] == df["largest_property_type"])
     ).mean() * 100
     print(f"  All three match: {all_match_pct:.1f}% of rows ({n} rows total)")
+    print(
+        "  High match rates mean these columns contribute overlapping "
+        "information rather than three independent signals — worth "
+        "keeping in mind when interpreting a model that uses all three, "
+        "though nothing needs to be dropped for the baseline."
+    )
  
  
 def build_preprocessor(categorical_features: list[str]) -> ColumnTransformer:
@@ -111,7 +117,15 @@ def split_data(X: pd.DataFrame, y: pd.Series):
 def prepare_data():
     """
     Runs the full preparation sequence and returns everything train.py
-    needs: the train/test split and the (unfit) preprocessor.
+    needs: the train/test split, the (unfit) preprocessor, and the full
+    cleaned DataFrame (df_clean).
+ 
+    df_clean is returned so error-analysis code in train.py can look up a
+    test row's identifying/contextual details (ewrb_id, city, property
+    type, etc.) by index — X_train/X_test only contain the encoded model
+    features, not an identifier, and train_test_split preserves the
+    original DataFrame index, so df_clean.loc[X_test.index] recovers the
+    full row for any test observation.
     """
     df = load_modeling_dataframe()
     df = drop_missing_target(df)
@@ -120,17 +134,15 @@ def prepare_data():
  
     X, y = define_features_and_target(df)
     # NOTE: `preprocessor` is intentionally UNFIT. It's built here but not
-    # fitted, so that whichever file trains a model
-    # can fit it inside a sklearn Pipeline on X_train only
-    # keeping the OneHotEncoder's learned categories free of test-set leakage.
+    # fitted, so that whichever file trains a model can fit it inside a sklearn Pipeline on X_train only
     preprocessor = build_preprocessor(CATEGORICAL_FEATURES)
     X_train, X_test, y_train, y_test = split_data(X, y)
  
-    return X_train, X_test, y_train, y_test, preprocessor
+    return X_train, X_test, y_train, y_test, preprocessor, df
  
  
 def main():
-    X_train, X_test, y_train, y_test, preprocessor = prepare_data()
+    X_train, X_test, y_train, y_test, preprocessor, df = prepare_data()
  
     print("\nX_train preview:")
     print(X_train.head())
@@ -153,13 +165,6 @@ def main():
     print(f"y_test missing values: {y_test_missing} "
           f"({'OK' if y_test_missing == 0 else 'PROBLEM'})")
     print(f"y_train dtype: {y_train.dtype}, y_test dtype: {y_test.dtype}")
- 
-    print("\nData is ready for train.py (not yet created): build a sklearn "
-          "Pipeline combining `preprocessor` with your estimator "
-          "(LinearRegression, RandomForestRegressor, etc.), fit on "
-          "X_train/y_train, evaluate on X_test/y_test. Start with a median "
-          "baseline before Linear Regression, per the project plan.")
- 
  
 if __name__ == "__main__":
     main()
