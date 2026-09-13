@@ -169,28 +169,64 @@ def plot_target_distribution(df: pd.DataFrame) -> None:
     plt.close()
     print(f"Saved log-scale histogram to {hist_log_path}")
 
-    # Boxplot by property type. Placed a limit to top N types so it stays readable.
-    # Types with very few buildings can produce misleading boxplots, so
-    # this is worth revisiting with a minimum-count threshold later.
-    top_types = df["primary_property_type"].value_counts().nlargest(8).index
-    subset = df[df["primary_property_type"].isin(top_types)]
+    # Boxplot by property type. Limit to the top 8 types so the chart stays
+    # readable. A horizontal layout is used so long property-type names do
+    # not overlap; the log scale is applied to the x-axis instead of the
+    # y-axis. Zero-valued EUI observations are excluded from this plot
+    # because a logarithmic axis cannot display zero.
+    top_types = df["primary_property_type"].value_counts().nlargest(8).index.tolist()
+    subset = df[df["primary_property_type"].isin(top_types)][
+        ["primary_property_type", TARGET]
+    ].dropna(subset=[TARGET])
+    subset = subset[subset[TARGET] > 0]
 
-    plt.figure(figsize=(10, 6))
-    subset.boxplot(column=TARGET, by="primary_property_type", rot=45)
-    plt.yscale("log")
-    plt.title(f"{TARGET} by Property Type (top 8 types, log-scale y-axis)")
-    plt.suptitle("")
-    plt.xlabel("Property Type")
-    plt.ylabel(f"{TARGET} (log scale)")
-    plt.tight_layout()
+    grouped = [
+        subset.loc[subset["primary_property_type"] == prop_type, TARGET].values
+        for prop_type in top_types
+    ]
+    labels = [
+        prop_type.replace("/", "/\n") if len(prop_type) > 24 else prop_type
+        for prop_type in top_types
+    ]
+
+    fig, ax = plt.subplots(figsize=(11, 6.5))
+    ax.boxplot(
+        grouped,
+        vert=False,
+        patch_artist=True,
+        tick_labels=labels,
+        showfliers=True,
+    )
+    ax.set_xscale("log")
+    fig.suptitle(
+        "Site Energy Use Intensity by Primary Property Type",
+        fontsize=15,
+        y=0.98,
+    )
+    fig.text(
+        0.5,
+        0.945,
+        "Top 8 property types by building count | positive EUI values | log scale",
+        ha="center",
+        va="top",
+        fontsize=10,
+    )
+    ax.set_xlabel("Site EUI (GJ/m²) — logarithmic scale")
+    ax.set_ylabel("Primary Property Type")
+    ax.grid(axis="x", linestyle="--", alpha=0.35)
+    ax.tick_params(axis="y", labelsize=9)
+    ax.margins(y=0.05)
+    fig.tight_layout(rect=[0, 0, 1, 0.91])
+
     box_path = output_dir / "site_eui_by_property_type_boxplot.png"
-    plt.savefig(box_path)
-    plt.close()
+    fig.savefig(box_path, dpi=200, bbox_inches="tight")
+    plt.close(fig)
     print(f"Saved boxplot to {box_path}")
     print(
-        "Note: uses a log-scale y-axis for the same reason as the "
-        "histogram above — without it, the extreme outliers compress "
-        "every box to a flat line at the bottom of the chart."
+        "Note: this plot uses the top 8 property types by building count, "
+        "a horizontal layout to keep long labels readable, and a log-scale "
+        "x-axis so extreme EUI values do not compress the boxes. Zero-valued "
+        "EUI observations are excluded because they cannot be shown on a log scale."
     )
 
 def target_vs_numerical(df: pd.DataFrame) -> None:
@@ -264,7 +300,7 @@ def plot_missing_values(df: pd.DataFrame) -> None:
     print(f"Saved missing values chart to {path}")
 
 def plot_site_eui_by_city(df: pd.DataFrame, top_n: int = 10) -> None:
-    """Boxplot of site_eui_gj_m2 for the top N cities by building count —
+    """Boxplot of site_eui_gj_m2 for the top N cities by building count: 
     limited for readability, same reasoning as the property-type boxplot."""
     top_cities = df["city"].value_counts().nlargest(top_n).index
     subset = df[df["city"].isin(top_cities)]
@@ -283,13 +319,13 @@ def plot_site_eui_by_city(df: pd.DataFrame, top_n: int = 10) -> None:
     print(f"Saved city boxplot to {path}")
 
 def plot_correlation_matrix(df: pd.DataFrame) -> None:
-    """Heatmap of correlations among all numeric columns — a compact view
+    """Heatmap of correlations among all numeric columns: a compact view
     of what target_vs_numerical() reports as text, plus relationships
     between the non-target numeric variables themselves.
 
     Excludes ewrb_id (an identifier, not a measurement) and
     reporting_year (constant at 2024 in the current dataset, so its
-    correlation with everything is undefined) — neither is meaningful
+    correlation with everything is undefined); neither is meaningful
     here."""
     exclude_cols = ["ewrb_id", "reporting_year"]
     numeric_df = df.select_dtypes(include="number").drop(
