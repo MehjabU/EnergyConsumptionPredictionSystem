@@ -207,7 +207,7 @@ def main():
  
     print("\n" + "=" * 60)
     print("EDA complete. Review the printed output and plots in "
-          f"'{output_dir}/' before deciding on features in prepare_data.py.")
+          f"'{output_dir}/'")
  
  
 if __name__ == "__main__":
