@@ -1,6 +1,6 @@
 import pandas as pd
 from pathlib import Path
-from connection import get_connection
+from .connection import get_connection
  
 query = """
 WITH latest_year AS (
