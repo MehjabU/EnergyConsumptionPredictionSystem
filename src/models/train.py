@@ -163,8 +163,7 @@ def main():
     print_results_table(results)
     print_largest_errors(df, X_test, y_test, y_pred_rf_log, model_name="Random Forest (log1p)")
  
-    # 8. a starting point for the next decision 
-    # not a final answer.
+    # 8. identifying the best-performing model according to each metric
     print_best_model(results)
  
  
