@@ -5,4 +5,4 @@ matplotlib==3.8.4
 openpyxl==3.1.2
 psycopg2-binary==2.9.9
 python-dotenv==1.0.1
-pytest==8.2.0, I used pytest v9.1.1
+pytest==8.2.0
